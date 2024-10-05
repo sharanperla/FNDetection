@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake News Detection</title>
+    <script>
+        async function predict() {
+            const text = document.getElementById('news-text').value;
+
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ text })
+            });
+
+            const result = await response.json();
+            document.getElementById('result').innerText = `Logistic Regression: ${result.logistic_regression_prediction}, Decision Tree: ${result.decision_tree_prediction}`;
+        }
+    </script>
+</head>
+<body>
+    <h1>Fake News Detection</h1>
+    <textarea id="news-text" rows="4" cols="50" placeholder="Enter news text here..."></textarea><br>
+    <button onclick="predict()">Predict</button>
+    <p id="result"></p>
+</body>
+</html>
