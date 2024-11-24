@@ -1,245 +1,220 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fake News Detection</title>
-
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
+    <title>Fake News Detector</title>
     <style>
         body {
-            font-family: 'Poppins', sans-serif;
-            background: url('https://img2.helpnetsecurity.com/posts2023/fake_news.jpg') no-repeat center center fixed;
-            background-size: cover;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            padding: 0 20px;
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
         }
 
         .container {
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 40px;
-            border-radius: 15px;
-            max-width: 600px;
-            width: 100%;
-            text-align: center;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         h1 {
-            font-size: 2.5rem;
             color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .input-section {
             margin-bottom: 20px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        h1 img {
-            width: 50px;
-            vertical-align: middle;
-            margin-right: 10px;
-        }
-
-        .illustration {
-            width: 100px;
-            margin: 0 auto 20px;
         }
 
         textarea {
             width: 100%;
-            max-width: 500px;
-            padding: 15px;
-            border-radius: 10px;
+            padding: 12px;
             border: 1px solid #ddd;
-            font-size: 1rem;
+            border-radius: 5px;
+            font-size: 16px;
             resize: vertical;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: box-shadow 0.3s ease;
-        }
-
-        textarea:focus {
-            outline: none;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+            margin-bottom: 10px;
         }
 
         button {
-            background: linear-gradient(45deg, #28a745, #20c997);
+            background-color: #4CAF50;
             color: white;
+            padding: 12px 24px;
             border: none;
             border-radius: 5px;
-            padding: 12px 30px;
             cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+            transition: background-color 0.3s;
         }
 
         button:hover {
-            background: linear-gradient(45deg, #20c997, #28a745);
-            transform: translateY(-3px);
-            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.15);
+            background-color: #45a049;
         }
 
-        #result {
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .prediction {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .fake {
+            background-color: #ffebee;
+            border: 1px solid #ffcdd2;
+        }
+
+        .real {
+            background-color: #e8f5e9;
+            border: 1px solid #c8e6c9;
+        }
+
+        .articles {
             margin-top: 20px;
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #333;
-            opacity: 0;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            white-space: pre-line;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
         }
 
-        #result.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .algorithm-result {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 8px;
-            width: 100%;
-            justify-content: center;
-            font-size: 1.1rem;
-            font-weight: bold;
-        }
-
-        .logistic-result {
-            background-color: rgba(40, 167, 69, 0.1);
-        }
-
-        .decision-tree-result {
-            background-color: rgba(0, 123, 255, 0.1);
-        }
-
-        .logistic-result.fake {
-            color: #dc3545;
-            border-left: 5px solid #dc3545;
-        }
-
-        .logistic-result.real {
-            color: #28a745;
-            border-left: 5px solid #28a745;
-        }
-
-        .decision-tree-result.fake {
-            color: #dc3545;
-            border-left: 5px solid #dc3545;
-        }
-
-        .decision-tree-result.real {
-            color: #28a745;
-            border-left: 5px solid #28a745;
-        }
-
-        .algorithm-result img {
-            width: 30px;
-            margin-right: 10px;
-        }
-
-        .spinner {
+        .loading {
             display: none;
-            margin: 20px auto;
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-radius: 50%;
-            border-top: 4px solid #007bff;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+            text-align: center;
+            margin: 20px 0;
         }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+        .error {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
         }
 
         @media (max-width: 600px) {
-            h1 {
-                font-size: 2rem;
+            body {
+                padding: 10px;
             }
-
+            
+            .container {
+                padding: 15px;
+            }
+            
             button {
                 width: 100%;
             }
         }
     </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Fake News Detector</h1>
+        
+        <div class="input-section">
+            <textarea 
+                id="newsText" 
+                rows="6" 
+                placeholder="Enter news text here (minimum 20 characters)..."
+                minlength="20"
+            ></textarea>
+            <div class="error" id="errorMessage"></div>
+            <button onclick="checkNews()" id="checkButton">Check News</button>
+        </div>
+
+        <div class="loading" id="loading">
+            Analyzing news... Please wait...
+        </div>
+
+        <div id="result" style="display: none;">
+            <div id="predictions" class="prediction"></div>
+            <div id="articles" class="articles"></div>
+        </div>
+    </div>
+
     <script>
-        async function predict() {
-            const text = document.getElementById('news-text').value;
-            const resultElement = document.getElementById('result');
-            const spinner = document.querySelector('.spinner');
+        const newsText = document.getElementById('newsText');
+        const checkButton = document.getElementById('checkButton');
+        const errorMessage = document.getElementById('errorMessage');
+        const loading = document.getElementById('loading');
 
-            resultElement.innerHTML = ''; // Clear previous result
-            resultElement.classList.remove('show');
-            spinner.style.display = 'inline-block';
+        // Enable/disable button based on input
+        newsText.addEventListener('input', function() {
+            const isValid = this.value.length >= 20;
+            checkButton.disabled = !isValid;
+            errorMessage.style.display = 'none';
+        });
 
+        async function checkNews() {
             try {
+                const text = newsText.value.trim();
+                
+                if (text.length < 20) {
+                    errorMessage.textContent = 'Please enter at least 20 characters';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
+
+                // Show loading state
+                loading.style.display = 'block';
+                checkButton.disabled = true;
+                document.getElementById('result').style.display = 'none';
+                errorMessage.style.display = 'none';
+
                 const response = await fetch('/predict', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ text })
+                    body: JSON.stringify({ text: text })
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const result = await response.json();
 
-                const logisticResult = document.createElement('div');
-                logisticResult.className = `algorithm-result logistic-result ${result.logistic_regression_prediction.toLowerCase()}`;
-                logisticResult.innerHTML = `<img src="https://img.icons8.com/color/48/000000/${result.logistic_regression_prediction === 'Fake' ? 'cancel' : 'checkmark'}.png" alt="${result.logistic_regression_prediction}"> Logistic Regression: ${result.logistic_regression_prediction}`;
+                if (result.error) {
+                    throw new Error(result.error);
+                }
 
-                const decisionTreeResult = document.createElement('div');
-                decisionTreeResult.className = `algorithm-result decision-tree-result ${result.decision_tree_prediction.toLowerCase()}`;
-                decisionTreeResult.innerHTML = `<img src="https://img.icons8.com/color/48/000000/${result.decision_tree_prediction === 'Fake' ? 'cancel' : 'checkmark'}.png" alt="${result.decision_tree_prediction}"> Decision Tree: ${result.decision_tree_prediction}`;
+                const predictionsDiv = document.getElementById('predictions');
+                predictionsDiv.className = 'prediction ' + (result.is_fake ? 'fake' : 'real');
+                predictionsDiv.innerHTML = `
+                    <h3>Prediction Results:</h3>
+                    <p><strong>Logistic Regression:</strong> ${result.logistic_regression_prediction}</p>
+                    <p><strong>Decision Tree:</strong> ${result.decision_tree_prediction}</p>
+                    <p><strong>Final Verdict:</strong> This news appears to be ${result.is_fake ? 'FAKE' : 'REAL'}</p>
+                `;
 
-                resultElement.appendChild(logisticResult);
-                resultElement.appendChild(decisionTreeResult);
+                const articlesDiv = document.getElementById('articles');
+                if (result.related_articles) {
+                    articlesDiv.innerHTML = `
+                        <h3>Related Articles:</h3>
+                        ${result.related_articles}
+                    `;
+                }
 
-                resultElement.classList.add('show');
+                document.getElementById('result').style.display = 'block';
+
             } catch (error) {
-                resultElement.innerHTML = '<p>Error: Could not get prediction.</p>';
-                resultElement.classList.add('show');
+                errorMessage.textContent = 'Error: ' + (error.message || 'Failed to analyze news');
+                errorMessage.style.display = 'block';
             } finally {
-                spinner.style.display = 'none';
+                loading.style.display = 'none';
+                checkButton.disabled = false;
             }
         }
     </script>
-</head>
-
-<body>
-    <div class="container">
-        <h1>Fake News Detection</h1>
-        <img class="illustration" src="https://img.icons8.com/fluency/80/000000/brain.png" alt="AI Brain">
-
-        <textarea id="news-text" rows="4" placeholder="Enter news text here..."></textarea><br>
-        <button onclick="predict()">Predict</button>
-        <div class="spinner"></div>
-        <div id="result"></div>
-    </div>
-
 </body>
-
 </html>
