@@ -114,6 +114,35 @@
                 width: 100%;
             }
         }
+        .ai-prediction {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 5px;
+        }
+
+        .explanation {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            white-space: pre-line;
+        }
+
+        .model-predictions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .model-predictions > div {
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -132,12 +161,12 @@
         </div>
 
         <div class="loading" id="loading">
-            Analyzing news... Please wait...
+            Analyzing news using AI and ML models... Please wait...
         </div>
 
         <div id="result" style="display: none;">
             <div id="predictions" class="prediction"></div>
-            <div id="articles" class="articles"></div>
+            <div id="explanation" class="explanation"></div>
         </div>
     </div>
 
@@ -188,22 +217,32 @@
                     throw new Error(result.error);
                 }
 
+                // Update predictions
                 const predictionsDiv = document.getElementById('predictions');
-                predictionsDiv.className = 'prediction ' + (result.is_fake ? 'fake' : 'real');
+                predictionsDiv.className = 'prediction ' + (result.is_fake === 'True' ? 'fake' : 'real');
+                
                 predictionsDiv.innerHTML = `
-                    <h3>Prediction Results:</h3>
-                    <p><strong>Logistic Regression:</strong> ${result.logistic_regression_prediction}</p>
-                    <p><strong>Decision Tree:</strong> ${result.decision_tree_prediction}</p>
-                    <p><strong>Final Verdict:</strong> This news appears to be ${result.is_fake ? 'FAKE' : 'REAL'}</p>
+                    <h3>Analysis Results:</h3>
+                    <div class="model-predictions">
+                        <div>
+                            <strong>AI Prediction:</strong><br>
+                            ${result.gemini_prediction}
+                        </div>
+                        <div>
+                            <strong>Logistic Regression:</strong><br>
+                            ${result.logistic_regression_prediction}
+                        </div>
+                        <div>
+                            <strong>Decision Tree:</strong><br>
+                            ${result.decision_tree_prediction}
+                        </div>
+                    </div>
+                    <p><strong>Final Verdict:</strong> This news appears to be ${result.is_fake === 'True' ? 'FAKE' : 'REAL'}</p>
                 `;
 
-                const articlesDiv = document.getElementById('articles');
-                if (result.related_articles) {
-                    articlesDiv.innerHTML = `
-                        <h3>Related Articles:</h3>
-                        ${result.related_articles}
-                    `;
-                }
+                // Update explanation
+                const explanationDiv = document.getElementById('explanation');
+                explanationDiv.innerHTML = result.explanation;
 
                 document.getElementById('result').style.display = 'block';
 

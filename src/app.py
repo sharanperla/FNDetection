@@ -40,7 +40,7 @@ try:
 except Exception as e:
     logger.error(f"Error during model loading: {str(e)}")
 
-# Configure Gemini AI API
+# Configure Gemini AI
 GOOGLE_API_KEY ="AIzaSyAGsQQrde1QNNBVi1LpUuLIuIetClxmAwM"
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
@@ -49,48 +49,64 @@ if GOOGLE_API_KEY:
 else:
     logger.warning("Google API key not found in environment variables")
 
-def get_related_articles(text, is_fake):
-    """Generate related factual articles using Gemini AI"""
+def get_gemini_prediction(text):
+    """Get prediction from Gemini AI"""
     try:
-        # Check if API key is configured
         if not GOOGLE_API_KEY:
-            return "Related articles feature is unavailable (API key not configured)"
+            return None, "API key not configured"
 
         prompt = f"""
-        {'The following news might be fake' if is_fake else 'Regarding this news'}: "{text}"
-        Please provide 2 factual, verified articles related to this topic.
-        Include:
-        1. Article title
-        2. Brief summary (2-3 sentences)
-        3. Publication date
-        4. Source (if available)
-        {'Focus on factual information and cite reliable sources.' if is_fake else ''}
+        Analyze if the following news is fake or real. Only respond with a single word: 'Fake' or 'Real'.
+        News: "{text}"
         """
 
-        # For testing without API key, return dummy data
-        if not GOOGLE_API_KEY:
-            return "API key not configured - Related articles unavailable"
-
-        # Generate content using Gemini
         response = model.generate_content(prompt)
+        prediction = response.text.strip().lower()
         
-        # Check if the response is valid
-        if response.text:
-            return response.text
+        # Normalize the response to match our format
+        if 'fake' in prediction:
+            return 'Fake', None
+        elif 'real' in prediction:
+            return 'Real', None
         else:
-            return "No relevant articles found"
+            return None, "Unclear prediction from Gemini"
 
     except Exception as e:
-        logger.error(f"Error in get_related_articles: {str(e)}")
+        logger.error(f"Error in Gemini prediction: {str(e)}")
+        return None, str(e)
+
+def get_explanation(text, gemini_prediction, log_pred, dt_pred):
+    """Generate detailed explanation using Gemini AI"""
+    try:
+        if not GOOGLE_API_KEY:
+            return "Explanation feature is unavailable (API key not configured)"
+
+        prompt = f"""
+        Analyze this news: "{text}"
+        
+        Our analysis shows:
+        - AI Prediction: {gemini_prediction}
+        - Logistic Regression Model: {"Fake" if log_pred == 0 else "Real"}
+        - Decision Tree Model: {"Fake" if dt_pred == 0 else "Real"}
+
+        Please provide:
+        1. A detailed explanation of why this news might be {gemini_prediction} (2-3 paragraphs)
+        2. Key indicators that led to this conclusion
+        3. Two relevant, factual articles about this topic:
+           - Article title
+           - Brief summary
+           - Publication date
+           - Source
+
+        Format the response with clear headings and bullet points.
+        """
+
+        response = model.generate_content(prompt)
+        return response.text if response.text else "No explanation available"
+
+    except Exception as e:
+        logger.error(f"Error in get_explanation: {str(e)}")
         return str(e)
-
-class CustomJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, (datetime, bool)):
-            return str(obj)
-        return super().default(obj)
-
-app.json_encoder = CustomJSONEncoder
 
 @app.route('/')
 def home():
@@ -121,24 +137,34 @@ def predict():
         if not text:
             return jsonify({'error': 'Empty text provided'}), 400
 
-        # Preprocess text and make predictions
-        try:
-            text_tfidf = tfidf.transform([text])
-            log_pred = int(log_model.predict(text_tfidf)[0])
-            dt_pred = int(dt_model.predict(text_tfidf)[0])
-        except Exception as e:
-            logger.error(f"Error during prediction: {str(e)}")
-            return jsonify({'error': 'Error processing text'}), 500
+        # Get ML model predictions
+        text_tfidf = tfidf.transform([text])
+        log_pred = int(log_model.predict(text_tfidf)[0])
+        dt_pred = int(dt_model.predict(text_tfidf)[0])
 
-        # Generate result
-        is_fake = str(log_pred == 0 or dt_pred == 0)
-        related_articles = get_related_articles(text, is_fake == 'True')
+        # Get Gemini prediction
+        gemini_prediction, error = get_gemini_prediction(text)
+        if error:
+            return jsonify({'error': f'Error with Gemini prediction: {error}'}), 500
+
+        # Compare predictions
+        ml_fake = log_pred == 0 or dt_pred == 0
+        gemini_fake = gemini_prediction == 'Fake'
+
+        # If predictions differ, use Gemini's prediction
+        if ml_fake != gemini_fake:
+            log_pred = 0 if gemini_fake else 1
+            dt_pred = 0 if gemini_fake else 1
+
+        # Get detailed explanation
+        explanation = get_explanation(text, gemini_prediction, log_pred, dt_pred)
 
         result = {
             'logistic_regression_prediction': 'Fake' if log_pred == 0 else 'Real',
             'decision_tree_prediction': 'Fake' if dt_pred == 0 else 'Real',
-            'is_fake': is_fake,
-            'related_articles': related_articles
+            'gemini_prediction': gemini_prediction,
+            'is_fake': str(gemini_fake),
+            'explanation': explanation
         }
 
         return jsonify(result)
@@ -147,20 +173,8 @@ def predict():
         logger.error(f"Unexpected error in predict endpoint: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
-# Error handlers
-@app.errorhandler(Exception)
-def handle_exception(e):
-    logger.error(f"Unhandled exception: {str(e)}")
-    if isinstance(e, HTTPException):
-        return jsonify({'error': str(e)}), e.code
-    return jsonify({'error': 'An unexpected error occurred'}), 500
-
 if __name__ == '__main__':
-    # Check if critical components are missing
-    if None in [log_model, dt_model, tfidf]:
-        logger.warning("Some models failed to load. Application may not function correctly.")
-    
     if not GOOGLE_API_KEY:
-        logger.warning("Google API key not set. Related articles feature will be disabled.")
+        logger.warning("Google API key not set. Gemini features will be disabled.")
     
     app.run(debug=True)
